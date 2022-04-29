@@ -77,6 +77,9 @@ void paint_gradient_rectangles(data_t *data,
 			       drmModeModeInfo *mode,
 			       color_t *colors,
 			       struct igt_fb *fb);
+void display_slide(data_t *data,
+		   drmModeModeInfo *mode,
+		   struct igt_fb *fb, const char *fname);
 void paint_rectangles(data_t *data,
 		      drmModeModeInfo *mode,
 		      color_t *colors,
