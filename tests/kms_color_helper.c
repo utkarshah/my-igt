@@ -76,6 +76,22 @@ uint64_t get_max_bpc(igt_output_t *output)
 		igt_output_get_prop(output, IGT_CONNECTOR_MAX_BPC) : 0;
 }
 
+void paint_color(data_t *data,
+		 drmModeModeInfo *mode,
+		 color_t *colors,
+		 struct igt_fb *fb)
+{
+	cairo_t *cr = igt_get_cairo_ctx(data->drm_fd, fb);
+	int i, l = mode->hdisplay;
+
+	for (i = 0 ; i < 3; i++) {
+		igt_paint_color(cr, i * l, 0, l, mode->vdisplay,
+				colors[i].r, colors[i].g, colors[i].b);
+		printf("paint color rgb is %f\t %f\t %f\n", colors[i].r, colors[i].g, colors[i].b);
+	}
+	igt_put_cairo_ctx(cr);
+}
+
 void paint_gradient_rectangles(data_t *data,
 			       drmModeModeInfo *mode,
 			       color_t *colors,
@@ -306,10 +322,9 @@ get_blob(data_t *data, igt_pipe_t *pipe, enum igt_atomic_crtc_properties prop)
 	return drmModeGetPropertyBlob(data->drm_fd, prop_value);
 }
 
-int
-pipe_set_property_blob_id(igt_pipe_t *pipe,
-			  enum igt_atomic_crtc_properties prop,
-			  uint32_t blob_id)
+int pipe_set_property_blob_id(igt_pipe_t *pipe,
+			      enum igt_atomic_crtc_properties prop,
+			      uint32_t blob_id)
 {
 	int ret;
 

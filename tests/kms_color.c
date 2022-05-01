@@ -82,7 +82,6 @@ static bool test_pipe_degamma(data_t *data,
 	igt_wait_for_vblank(data->drm_fd,
 			    display->pipes[primary->pipe->pipe].crtc_offset);
 	igt_pipe_crc_collect_crc(data->pipe_crc, &crc_fullcolors);
-
 	/* Draw a gradient with degamma LUT to remap all
 	 * values to max red/green/blue.
 	 */
@@ -303,6 +302,81 @@ static void test_pipe_legacy_gamma(data_t *data,
 	free(red_lut);
 	free(green_lut);
 	free(blue_lut);
+}
+
+static bool test_pipe_color_ctm(data_t *data,
+				igt_plane_t *primary,
+				color_t *before,
+				color_t *after,
+				double *ctm_matrix)
+{
+	const double ctm_identity[] = {
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0
+	};
+	gamma_lut_t *degamma_linear, *gamma_linear;
+	igt_output_t *output;
+	igt_display_t *display = &data->display;
+	drmModeModeInfo *mode;
+	struct igt_fb fb_modeset, fb;
+	int fb_id, fb_modeset_id;
+	int i, j;
+	bool ret = true;
+
+	igt_require(igt_pipe_obj_has_prop(primary->pipe, IGT_CRTC_CTM));
+	degamma_linear = generate_table(data->degamma_lut_size, 1.0);
+	gamma_linear = generate_table(data->gamma_lut_size, 1.0);
+	output = igt_get_single_output_for_pipe(&data->display, primary->pipe->pipe);
+	igt_require(output);
+
+	igt_output_set_pipe(output, primary->pipe->pipe);
+	mode = igt_output_get_mode(output);
+	fb_id = igt_create_fb(data->drm_fd,
+			      mode->hdisplay,
+			      mode->vdisplay,
+			      DRM_FORMAT_XRGB8888,
+			      DRM_FORMAT_MOD_LINEAR,
+			      &fb);
+	igt_assert(fb_id);
+	fb_modeset_id = igt_create_fb(data->drm_fd,
+				      mode->hdisplay,
+				      mode->vdisplay,
+				      DRM_FORMAT_XRGB8888,
+				      DRM_FORMAT_MOD_LINEAR,
+				      &fb_modeset);
+	igt_assert(fb_modeset_id);
+	igt_plane_set_fb(primary, &fb_modeset);
+	if (memcmp(before, after, sizeof(color_t))) {
+		set_degamma(data, primary->pipe, degamma_linear);
+		set_gamma(data, primary->pipe, gamma_linear);
+	} else {
+		disable_degamma(primary->pipe);
+		disable_gamma(primary->pipe);
+	}
+	disable_ctm(primary->pipe);
+	igt_display_commit(&data->display);
+	paint_color(data, mode, before, &fb);
+	igt_plane_set_fb(primary, &fb);
+	set_ctm(primary->pipe, ctm_identity);
+	igt_display_commit(&data->display);
+	igt_wait_for_vblank(data->drm_fd,
+			    display->pipes[primary->pipe->pipe].crtc_offset);
+	printf("Enter to proceed");
+	scanf("%d", &i);
+	set_ctm(primary->pipe, ctm_matrix);
+	igt_display_commit(&data->display);
+	igt_wait_for_vblank(data->drm_fd,
+			    display->pipes[primary->pipe->pipe].crtc_offset);
+	printf("Enter to proceed");
+	scanf("%d", &j);
+	igt_plane_set_fb(primary, NULL);
+	igt_output_set_pipe(output, PIPE_NONE);
+	igt_remove_fb(data->drm_fd, &fb);
+	igt_remove_fb(data->drm_fd, &fb_modeset);
+	free_lut(degamma_linear);
+	free_lut(gamma_linear);
+	return ret;
 }
 
 /*
@@ -786,7 +860,24 @@ run_tests_for_pipe(data_t *data, enum pipe p)
 		}
 		igt_assert(success);
 	}
-
+	igt_describe("Check the color transformation from full red to blue");
+	igt_subtest_f("pipe-%s-color-ctm-red-to-blue", kmstest_pipe_name(p)) {
+		color_t red_red_red[] = {
+			{ 1.0, 0.0, 0.0 },
+			{ 1.0, 0.0, 0.0 },
+			{ 1.0, 0.0, 0.0 }
+		};
+		color_t blue_blue_blue[] = {
+			{ 0.0, 0.0, 1.0 },
+			{ 0.0, 0.0, 1.0 },
+			{ 0.0, 0.0, 1.0 }
+		};
+		double ctm[] = { 0.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				1.0, 0.0, 1.0 };
+		igt_assert(test_pipe_color_ctm(data, primary, red_red_red,
+					       blue_blue_blue, ctm));
+	}
 	igt_describe("Check the color transformation for 0.75 transparency");
 	igt_subtest_f("pipe-%s-ctm-0-75", kmstest_pipe_name(p)) {
 		color_t expected_colors[] = {
