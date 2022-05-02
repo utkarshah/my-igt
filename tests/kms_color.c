@@ -111,6 +111,43 @@ static bool test_pipe_degamma(data_t *data,
 	return ret;
 }
 
+static void test_show_image(data_t *data, igt_plane_t *primary)
+{
+	igt_output_t *output;
+	igt_display_t *display = &data->display;
+	struct igt_fb fb;
+	drmModeModeInfo *mode;
+	int image_fb_id;
+	int i;
+
+	output = igt_get_single_output_for_pipe(&data->display, primary->pipe->pipe);
+
+	igt_require(output);
+	igt_output_set_pipe(output, primary->pipe->pipe);
+	mode = igt_output_get_mode(output);
+	image_fb_id = igt_create_fb(data->drm_fd,
+				    mode->hdisplay,
+				    mode->vdisplay,
+				    DRM_FORMAT_XRGB8888,
+				    DRM_FORMAT_MOD_NONE,
+				    &fb);
+	igt_assert(image_fb_id);
+	igt_plane_set_fb(primary, &fb);
+	igt_display_commit(&data->display);
+	display_image(data, mode, &fb, "image1.png");
+	igt_display_commit(&data->display);
+
+	/*Just to stop and see the output on screeni. */
+	printf("enter num");
+	scanf("%d", &i);
+	usleep(1000000);
+	igt_wait_for_vblank(data->drm_fd,
+			    display->pipes[primary->pipe->pipe].crtc_offset);
+	usleep(1000000);
+	igt_output_set_pipe(output, PIPE_NONE);
+	igt_remove_fb(data->drm_fd, &fb);
+}
+
 /*
  * Draw 3 gradient rectangles in red, green and blue, with a maxed out gamma
  * LUT and verify we have the same CRC as drawing solid color rectangles.
@@ -807,6 +844,11 @@ run_tests_for_pipe(data_t *data, enum pipe p)
 				0.0, 0.0, 0.0 };
 		igt_assert(test_pipe_ctm(data, primary, red_green_blue,
 					 red_green_red, ctm));
+	}
+
+	igt_describe("To display The Image");
+	igt_subtest_f("pipe-%s-show_image", kmstest_pipe_name(p)) {
+		 test_show_image(data, primary);
 	}
 
 	/* We tests a few values around the expected result because

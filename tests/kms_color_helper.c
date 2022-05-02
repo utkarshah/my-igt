@@ -150,6 +150,18 @@ void paint_rectangles(data_t *data,
 	igt_put_cairo_ctx(cr);
 }
 
+void display_image(data_t *data,
+		   drmModeModeInfo *mode,
+		   struct igt_fb *fb, const char *fname)
+{
+	cairo_t *cr;
+
+	cr = igt_get_cairo_ctx(fb->fd, fb);
+
+	igt_paint_image(cr, fname, 0, 0, mode->hdisplay, mode->vdisplay);
+	igt_put_cairo_ctx(cr);
+}
+
 gamma_lut_t *alloc_lut(int lut_size)
 {
 	gamma_lut_t *gamma;

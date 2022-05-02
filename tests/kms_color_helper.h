@@ -81,6 +81,9 @@ void paint_rectangles(data_t *data,
 		      drmModeModeInfo *mode,
 		      color_t *colors,
 		      struct igt_fb *fb);
+void display_image(data_t *data,
+		   drmModeModeInfo *mode,
+		   struct igt_fb *fb, const char *fname);
 gamma_lut_t *alloc_lut(int lut_size);
 void free_lut(gamma_lut_t *gamma);
 gamma_lut_t *generate_table(int lut_size, double exp);
