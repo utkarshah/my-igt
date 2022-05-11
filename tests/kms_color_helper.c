@@ -76,6 +76,17 @@ uint64_t get_max_bpc(igt_output_t *output)
 		igt_output_get_prop(output, IGT_CONNECTOR_MAX_BPC) : 0;
 }
 
+void display_image(data_t *data,
+		   drmModeModeInfo *mode,
+		   struct igt_fb *fb)
+{
+        cairo_t* cr;
+        cr = igt_get_cairo_ctx(fb->fd, fb);
+        igt_paint_image(cr, "pic1.png", 0, 0, mode->hdisplay, mode->vdisplay);
+        igt_put_cairo_ctx(cr);
+
+}
+
 void paint_color(data_t *data,
 		 drmModeModeInfo *mode,
 		 color_t *colors,

@@ -537,6 +537,87 @@ static void test_pipe_legacy_gamma_reset(data_t *data,
 	free_lut(gamma_zero);
 }
 
+static void test_modify_image(data_t *data,igt_plane_t *primary)
+ {
+         igt_output_t *output;
+         igt_display_t *display = &data->display;
+         struct igt_fb fb;
+         drmModeModeInfo *mode;
+         int image_fb_id;
+         int i,j,n;
+         output = igt_get_single_output_for_pipe(&data->display, primary->pipe->pipe);
+         igt_require(output);
+
+         igt_output_set_pipe(output, primary->pipe->pipe);
+         mode = igt_output_get_mode(output);
+
+         image_fb_id = igt_create_fb(data->drm_fd,
+                              mode->hdisplay,
+                              mode->vdisplay,
+                              DRM_FORMAT_XRGB8888,
+                              DRM_FORMAT_MOD_NONE,
+                              &fb);
+
+         igt_assert(image_fb_id);
+
+         igt_plane_set_fb(primary, &fb);
+         igt_display_commit(&data->display);
+
+
+         display_image(data, mode, &fb);
+         igt_display_commit(&data->display);
+         printf("enter num");
+         scanf("%d",&i);
+         usleep(1000000);
+         igt_wait_for_vblank(data->drm_fd,
+                        display->pipes[primary->pipe->pipe].crtc_offset);
+         usleep(1000000);
+
+         printf("Enter the choice you want to proceed\n 1. Change color Red to Blue\n 2. Change color Green to Red\n 3. Change color Blue to Red\n");
+         scanf("%d", &n);
+         switch (n){
+         case 1:
+                    printf("Choice is 1");
+                    double ctm_matrix[] = { 0.0, 0.0, 0.0,
+                                0.0, 1.0, 0.0,
+                                1.0, 0.0, 1.0 };
+                    set_ctm(primary->pipe, ctm_matrix);
+                    igt_display_commit(&data->display);
+                    igt_wait_for_vblank(data->drm_fd, display->pipes[primary->pipe->pipe].crtc_offset);
+                    printf("Enter to proceed");
+                    scanf("%d",&j);
+                    break;
+         case 2:
+                    printf("Choice 2 is selected\n");
+                    double ctm_matrix1[] = { 1.0, 1.0, 0.0,
+                                0.0, 0.0, 0.0,
+                                0.0, 0.0, 1.0 };
+                    set_ctm(primary->pipe, ctm_matrix1);
+                    igt_display_commit(&data->display);
+                    igt_wait_for_vblank(data->drm_fd, display->pipes[primary->pipe->pipe].crtc_offset);
+                    printf("Enter to proceed");
+                    scanf("%d",&j);
+                    break;
+        case 3:
+                    printf("Choice is 3");
+                    double ctm_matrix2[] = { 1.0, 0.0, 1.0,
+                                0.0, 1.0, 0.0,
+                                0.0, 0.0, 0.0 };
+                    set_ctm(primary->pipe, ctm_matrix2);
+                    igt_display_commit(&data->display);
+                    igt_wait_for_vblank(data->drm_fd, display->pipes[primary->pipe->pipe].crtc_offset);
+                    printf("Enter to proceed");
+                    scanf("%d",&j);
+                    break;
+        default:
+                    printf("Choice other than 1,2 and 3");
+                    break;
+        }
+         igt_output_set_pipe(output, PIPE_NONE);
+         igt_remove_fb(data->drm_fd, &fb);
+
+}
+
 /*
  * Draw 3 rectangles using before colors with the ctm matrix apply and verify
  * the CRC is equal to using after colors with an identify ctm matrix.
@@ -865,6 +946,12 @@ run_tests_for_pipe(data_t *data, enum pipe p)
 	data->color_depth = 8;
 	delta = 1.0 / (1 << data->color_depth);
 	data->drm_format = DRM_FORMAT_XRGB8888;
+
+	igt_describe("Display an Image and Modify it");
+         igt_subtest_f("pipe-%s-modify_image", kmstest_pipe_name(p)) {
+
+         test_modify_image(data, primary);
+        }
 
 	igt_describe("Check the color transformation from red to blue");
 	igt_subtest_f("pipe-%s-ctm-red-to-blue", kmstest_pipe_name(p)) {
