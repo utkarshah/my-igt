@@ -128,6 +128,18 @@ void paint_gradient_rectangles(data_t *data,
 	igt_put_cairo_ctx(cr);
 }
 
+void display_slide(data_t *data,
+		   drmModeModeInfo *mode,
+		   struct igt_fb *fb, const char *fname)
+{
+	cairo_t *cr;
+
+	cr = igt_get_cairo_ctx(fb->fd, fb);
+
+	igt_paint_image(cr, fname, 0, 0, mode->hdisplay, mode->vdisplay);
+	igt_put_cairo_ctx(cr);
+}
+
 void paint_rectangles(data_t *data,
 		      drmModeModeInfo *mode,
 		      color_t *colors,

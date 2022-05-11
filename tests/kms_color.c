@@ -26,6 +26,9 @@
 
 IGT_TEST_DESCRIPTION("Test Color Features at Pipe level");
 
+bool stop_slide_show = true;
+void *stop_slideshow(void);
+
 static bool test_pipe_degamma(data_t *data,
 			      igt_plane_t *primary)
 {
@@ -634,6 +637,65 @@ static bool test_pipe_ctm(data_t *data,
 	return ret;
 }
 
+void *stop_slideshow(void)
+{
+	int a;
+
+	printf("Press Any Number To Stop The Slideshow\n");
+	scanf("%d", &a);
+	stop_slide_show = false;
+	return NULL;
+}
+
+static void test_slide_show(data_t *data, igt_plane_t *primary)
+{
+	igt_output_t *output;
+	igt_display_t *display = &data->display;
+	struct igt_fb fb;
+	drmModeModeInfo *mode;
+	int image_fb_id, i = 1;
+	char s1[6], str[80];
+
+	output = igt_get_single_output_for_pipe(&data->display, primary->pipe->pipe);
+
+	igt_require(output);
+	igt_output_set_pipe(output, primary->pipe->pipe);
+	mode = igt_output_get_mode(output);
+	image_fb_id = igt_create_fb(data->drm_fd,
+				    mode->hdisplay,
+				    mode->vdisplay,
+				    DRM_FORMAT_XRGB8888,
+				    DRM_FORMAT_MOD_NONE,
+				    &fb);
+	igt_assert(image_fb_id);
+	pthread_t *th;
+
+	pthread_create(&th, NULL, stop_slideshow, NULL);
+	while (stop_slide_show) {
+		sprintf(s1, "%d", i);
+		strcpy(str, "image-");
+		strcat(str, s1);
+		strcat(str, ".");
+		strcat(str, "png");
+		printf("%s", str);
+		printf("\t[Here i=%d]\n", i);
+		igt_plane_set_fb(primary, &fb);
+		igt_display_commit(&data->display);
+		display_slide(data, mode, &fb, str);
+		igt_display_commit(&data->display);
+		sleep(5);
+		igt_wait_for_vblank(data->drm_fd,
+				    display->pipes[primary->pipe->pipe].crtc_offset);
+		usleep(1000);
+		i++;
+		if (i == 10)
+			i = 1;
+	}
+	pthread_join(th, NULL);
+	igt_output_set_pipe(output, PIPE_NONE);
+	igt_remove_fb(data->drm_fd, &fb);
+}
+
 /*
  * Hardware computes CRC based on the number of bits it is working with (8,
  * 10, 12, 16 bits), meaning with a framebuffer of 8bits per color will
@@ -816,6 +878,11 @@ run_tests_for_pipe(data_t *data, enum pipe p)
 				1.0, 0.0, 1.0 };
 		igt_assert(test_pipe_ctm(data, primary, red_green_blue,
 					 blue_green_blue, ctm));
+	}
+
+	igt_describe("To display slide show");
+	igt_subtest_f("pipe-%s-slide_show", kmstest_pipe_name(p))	{
+		test_slide_show(data, primary);
 	}
 
 	igt_describe("Check the color transformation from green to red");
