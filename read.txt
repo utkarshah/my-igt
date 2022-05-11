@@ -1,1 +1,7 @@
-This is my first commit
+#This is my first commit
+
+For show-image subtest to run, you need to add one image in test/ folder inside my-igt with name pic1.png
+
+For modify color and display the image you need to add one mage in the test folder with name image.png
+
+Same for sliide-show, we need to add 10 images with names image1.png to image10.png
