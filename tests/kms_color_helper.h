@@ -69,6 +69,9 @@ typedef struct {
 
 bool panel_supports_deep_color(int fd, drmModeConnector *connector);
 uint64_t get_max_bpc(igt_output_t *output);
+void display_image(data_t *data,
+		   drmModeModeInfo *mode,
+		   struct igt_fb *fb);
 void paint_color(data_t *data,
 		 drmModeModeInfo *mode,
 		 color_t *colors,
